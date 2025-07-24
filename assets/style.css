@@ -21,7 +21,24 @@ body {
 }
 
 .padding {
-  padding: 1em;
+  padding: 0 1em;
+}
+
+.copy-block {
+  display: flex;
+  justify-content: space-between;
+}
+
+.copy-block>button {
+  max-width: 7em;
+}
+
+.active {
+  background: #1abc9c;
+  border-color: #1abc9c;
+  color: #fafafa;
+  pointer-events: none;
+  user-select: none;
 }
 
 input[type="checkbox"] {
@@ -50,6 +67,7 @@ button {
   margin-top: 10px;
   margin-bottom: 10px;
   width: 100%;
+  cursor: pointer;
 }
 
 section {

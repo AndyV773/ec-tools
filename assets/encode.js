@@ -22,6 +22,7 @@ function maybeShowLoader(text) {
   return false;
 }
 
+
 // file size helper
 function formatBytes(bytes) {
     const sizes = ["Bytes", "KB", "MB", "GB"];
@@ -108,8 +109,8 @@ async function scrambleText() {
 }
 
 async function skipEnc() {
-  showLoader(true);
   if (maybeShowLoader(data.key)) {
+    showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
@@ -182,8 +183,8 @@ function compress(text) {
 
 // compress and encrypt unicode
 async function encryptUnicode() {
-  showLoader(true);
   if (maybeShowLoader(data.shuffled)) {
+    showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000)); 
   }
@@ -208,8 +209,8 @@ async function encryptUnicode() {
 
 // compress and encrypt key 
 async function encryptKey() {
-  showLoader(true);
   if (maybeShowLoader(data.key)) {
+    showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
@@ -418,7 +419,40 @@ async function downloadTextFile(filename, text) {
   }
 }
 
+function copyCode(selector) {
+  const buttons = document.querySelectorAll(selector);
+
+  buttons.forEach(button => {
+    button.addEventListener("click", () => {
+      const parent = button.closest(".copy-block");
+      const textarea = parent?.previousElementSibling;
+
+      if (textarea && textarea.tagName === "TEXTAREA") {
+        textarea.select();
+        textarea.setSelectionRange(0, 99999); // Mobile support
+
+        navigator.clipboard.writeText(textarea.value)
+          .then(() => {
+            button.textContent = "Copied!";
+            button.classList.add("active");
+            setTimeout(() => {
+              button.textContent = "Copy";
+              button.classList.remove("active");
+            }, 1500);
+          })
+          .catch(() => {
+            showError("Failed to copy text.");
+          });
+      } else {
+        showError("No textarea found to copy.");
+      }
+    });
+  });
+}
+
+
 document.addEventListener("DOMContentLoaded", () => {
+  copyCode(".copy-block button");
   // file upload event listener calls handle file function
   document.getElementById("file-input").addEventListener("change", function (e) {
     const file = e.target.files[0];

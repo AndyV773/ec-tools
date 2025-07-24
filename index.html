@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Encode Text to Encrypted QR</title>
+    <title>Encoded</title>
     <link rel="stylesheet" href="assets/style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/lzma@2.3.2/src/lzma.min.js"></script>
@@ -25,7 +25,7 @@
     </div>
 
     <section>
-      <h2>Input Text or Upload File</h2>
+      <h2>Upload File or Input Text</h2>
 
       <div class="section">
         <input type="file" id="file-input" />
@@ -41,9 +41,15 @@
       <p> Text Byte size: <span id="text-byte-count">0</span> bytes </p>
       <button id="shuffle">Scramble to Unicode</button>
       <textarea id="scrambled-unicode" placeholder="Scrambled Unicode" readonly></textarea>
-      <p> Unicode Byte size: <span id="scrambled-byte-count">0</span> bytes </p>
+      <div class="copy-block">
+        <p> Unicode Byte size: <span id="scrambled-byte-count">0</span> bytes </p>
+        <button>Copy</button>
+      </div>
       <textarea id="rotation-key" placeholder="Rotation Key" readonly></textarea>
-      <p> Key Byte size: <span id="rotation-byte-count">0</span> bytes </p>
+      <div class="copy-block">
+        <p> Key Byte size: <span id="rotation-byte-count">0</span> bytes </p>
+        <button>Copy</button>
+      </div>
     </section>
 
     <section>
@@ -55,12 +61,18 @@
 
       <input id="pw-unicode" placeholder="Password for Unicode" />
       <textarea id="enc-unicode" placeholder="Encrypted Unicode" readonly></textarea>
-      <p> Unicode Byte size: <span id="enc-unicode-byte-count">0</span> bytes </p>
+      <div class="copy-block">
+        <p> Unicode Byte size: <span id="enc-unicode-byte-count">0</span> bytes </p>
+        <button>Copy</button>
+      </div>
       <button id="enc-uni-btn">Encrypt Unicode</button>
 
       <input id="pw-key" placeholder="Password for Key" />
       <textarea id="enc-key" placeholder="Encrypted Key" readonly></textarea>
-      <p> Key Byte size: <span id="enc-key-byte-count">0</span> bytes </p>
+      <div class="copy-block">
+        <p> Key Byte size: <span id="enc-key-byte-count">0</span> bytes </p>
+        <button>Copy</button>
+      </div>
       <button id="enc-key-btn">Encrypt Key</button>
     </section>
 
