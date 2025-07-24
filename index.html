@@ -6,15 +6,23 @@
     <title>Encode Text to Encrypted QR</title>
     <link rel="stylesheet" href="assets/style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lzma@2.3.2/src/lzma.min.js"></script>
   </head>
   <body>
     <nav>
-      <a href="index.html">Encode</a>
       <a href="decode.html">Decode</a>
+      <a href="optimized.html">Opt-Enc</a>
     </nav>
 
-    <h1>Encode Text to Encrypted QR</h1>
+    <h1>Encode</h1>
     <div id="error-msg"></div>
+    <div class="loader-overlay hidden">
+      <div class="loader-wrapper">
+        <div class="loader"></div>
+        <div class="loader-icon">🛡️</div>
+      </div>
+      <div class="loader-text">Processing... Please wait</div>
+    </div>
 
     <section>
       <h2>Input Text or Upload File</h2>
@@ -23,74 +31,73 @@
         <input type="file" id="file-input" />
       </div>
 
-      <p id="detected-ext">Detected file type: (none)</p>
+      <div class="info-box" id="file-info"></div>
 
       <label class="flex">
         Include all characters
         <input type="checkbox" id="all-char" />
       </label>
-      <textarea oninput="updateByteCount()" id="input-text" placeholder="Enter text..."></textarea>
+      <textarea id="input-text" placeholder="Enter text..."></textarea>
       <p> Text Byte size: <span id="text-byte-count">0</span> bytes </p>
-      <button onclick="scrambleText()">Scramble to Unicode</button>
-      <div id="progress">
-        <progress id="progress-bar" value="0" max="100"></progress>
-        <span id="progress-label">0%</span>
-      </div>
-      <textarea oninput="updateByteCount()" id="scrambled-unicode" placeholder="Scrambled Unicode"></textarea>
+      <button id="shuffle">Scramble to Unicode</button>
+      <textarea id="scrambled-unicode" placeholder="Scrambled Unicode" readonly></textarea>
       <p> Unicode Byte size: <span id="scrambled-byte-count">0</span> bytes </p>
-      <textarea oninput="updateByteCount()" id="rotation-key" placeholder="Rotation Key"></textarea>
+      <textarea oninput="updateByteCount()" id="rotation-key" placeholder="Rotation Key" readonly></textarea>
       <p> Key Byte size: <span id="rotation-byte-count">0</span> bytes </p>
     </section>
 
     <section>
       <h2>Encrypt</h2>
+      <label class="flex">
+        Skip encryption
+        <input type="checkbox" id="skip-enc" />
+      </label>
+
       <input id="pw-unicode" placeholder="Password for Unicode" />
-      <textarea oninput="updateByteCount()" id="enc-unicode" placeholder="Encrypted Unicode"></textarea>
+      <textarea id="enc-unicode" placeholder="Encrypted Unicode" readonly></textarea>
       <p> Unicode Byte size: <span id="enc-unicode-byte-count">0</span> bytes </p>
-      <button onclick="encryptUnicode()">Encrypt Unicode</button>
+      <button id="enc-uni-btn">Encrypt Unicode</button>
 
       <input id="pw-key" placeholder="Password for Key" />
-      <textarea oninput="updateByteCount()" id="enc-key" placeholder="Encrypted Key"></textarea>
+      <textarea id="enc-key" placeholder="Encrypted Key" readonly></textarea>
       <p> Key Byte size: <span id="enc-key-byte-count">0</span> bytes </p>
-      <button onclick="encryptKey()">Encrypt Key</button>
+      <button id="enc-key-btn">Encrypt Key</button>
     </section>
 
     <section id="qr">
-      <h2>QR Code</h2>
+      <h2>Download</h2>
       <div class="qr-container">
         <div>
           <div class="padding">
-            <label for="qr-error-level-unicode">Error Correction Level:</label>
-            <select id="qr-error-level-unicode">
-              <option value="L">Low (L) - 2950 B</option>
-              <option value="M" selected>Medium (M) - 2300 B</option>
-              <option value="Q">Quartile (Q) - 1660 B</option>
-            </select>
-            <textarea oninput="updateByteCount()" id="input-unicode" placeholder="Input Unicode"></textarea>
+            <h4>Unicode</h4>
+            <textarea id="input-unicode" placeholder="Input Unicode"></textarea>
             <p> Unicode Byte size: <span id="unicode-byte-count">0</span> bytes </p>
+            <p>Error Correction Level: <span id="qr-error-level-unicode" data-value="">No data</span></p>
           </div>
-          <button onclick="generateQRCodeUnicode()">Generate QR</button>
-          <h4>Unicode QR</h4>
+          <div id="uni-dwn" class="padding hidden">
+            <button id="unicode-qr-gen" class="hidden">Generate QR</button>
+            <button id="unicode-txt"> Download TXT </button>
+          </div>
           <div id="qr-unicode"></div>
-          <button onclick="downloadQR('qr-unicode', 'unicode')"> Download QR </button>
-          <button onclick="downloadTextFile('unicode', document.getElementById('input-unicode').value)"> Download TXT </button>
+          <div id="download-qr-unicode" class="padding hidden">
+            <button>Download QR</button>
+          </div>
         </div>
         <div>
           <div class="padding">
-            <label for="qr-error-level-key">Error Correction Level:</label>
-            <select id="qr-error-level-key">
-              <option value="L">Low (L) - 2950 B</option>
-              <option value="M" selected>Medium (M) - 2300 B</option>
-              <option value="Q">Quartile (Q) - 1660 B</option>
-            </select>
-            <textarea oninput="updateByteCount()" id="input-key" placeholder="Input Key"></textarea>
+            <h4>Key</h4>
+            <textarea id="input-key" placeholder="Input Key"></textarea>
             <p> Key Byte size: <span id="key-byte-count">0</span> bytes </p>
+            <p>Error Correction Level: <span id="qr-error-level-key" data-value="">No data</span></p>
           </div>
-          <button onclick="generateQRCodeKey()">Generate QR</button>
-          <h4>Key QR</h4>
+          <div id="key-dwn" class="padding hidden">
+            <button id="key-qr-gen" class="hidden">Generate QR</button>
+            <button id="key-txt"> Download TXT </button>
+          </div>
           <div id="qr-key"></div>
-          <button onclick="downloadQR('qr-key', 'key')">Download QR</button>
-          <button onclick="downloadTextFile('key', document.getElementById('input-key').value)"> Download TXT </button>
+          <div id="download-qr-key" class="padding hidden">
+            <button>Download QR</button>
+          </div>
         </div>
       </div>
     </section>

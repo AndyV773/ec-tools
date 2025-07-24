@@ -173,6 +173,7 @@ function recoverOriginal() {
     }
     document.getElementById("file-code").textContent = result;
     const bytes = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
+    // const bytes = new TextEncoder().encode(result);
     const ext = detectFileExtension(bytes);
     document.getElementById("detected-ext").textContent =
     "Detected file type: ." + ext;
