@@ -461,7 +461,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("enc-key-btn").addEventListener("click", encryptKey);
 
   // generate qr code
-  document.getElementById("unicode-qr-gen").addEventListener("click", generateQRCodeKey);
+  document.getElementById("unicode-qr-gen").addEventListener("click", generateQRCodeUnicode);
   document.getElementById("key-qr-gen").addEventListener("click", generateQRCodeKey);
   
   // download .txt and qr code 
