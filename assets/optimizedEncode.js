@@ -153,6 +153,14 @@ function downloadQR(containerId, name) {
     link.click();
 }
 
+function uint8ToBase64(uint8) {
+  let binary = "";
+  for (let i = 0; i < uint8.length; i++) {
+    binary += String.fromCharCode(uint8[i]);
+  }
+  return btoa(binary);
+}
+
 // handle encryption and generate
 async function process() {
     data = { shuffled: "", key: [] };
@@ -162,7 +170,7 @@ async function process() {
     
     let rawInput = "";
     if (fileInput) {
-        rawInput = btoa(String.fromCharCode(...fileInput));
+        rawInput = uint8ToBase64(fileInput);
     } else {
         const text = document.getElementById("text-input").value;
         if (!text) return showError("No input provided.");
