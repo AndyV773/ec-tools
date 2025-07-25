@@ -1,3 +1,7 @@
+let data = { shuffled: "", key: [] },
+  result = "";
+
+// error message
 function showError(message) {
   const msg = document.getElementById("error-msg");
   msg.textContent = message;
@@ -5,9 +9,24 @@ function showError(message) {
   setTimeout(() => (msg.style.display = "none"), 3000);
 }
 
+// show loader and loading text
+function showLoader(show = true) {
+    document.querySelector(".loader-overlay").classList.toggle("hidden", !show);
+}
+
+function maybeShowLoader(input) {
+  const threshold = 50000; // 50,000 characters
+  if (input.length > threshold) {
+    showLoader(true);
+    return true;
+  }
+  return false;
+}
+
 let currentOutputId = null;
 let videoStream = null;
 
+// starts video scanner for qr
 function startScanner(outputId) {
   currentOutputId = outputId;
 
@@ -31,6 +50,7 @@ function startScanner(outputId) {
     });
 }
 
+// scans for qr code
 function scanQR() {
   const video = document.getElementById("qr-video");
 
@@ -45,24 +65,29 @@ function scanQR() {
 
     if (code && currentOutputId) {
       document.getElementById(currentOutputId).value = code.data;
-      // Optionally, stop scanning once a QR code is found
-      // videoStream.getTracks().forEach(track => track.stop());
-      // return;
+      // stop scanning once a QR code is found
+      videoStream.getTracks().forEach(track => track.stop());
+      return;
     }
   }
   requestAnimationFrame(scanQR);
 }
 
+// upload helper function 
 function decodedValue(type, value) {
-  if (type === "unicode") {
-    document.getElementById("unicode-input").value = value;
+  if (type === "data") {
+    data.shuffled = value;
+    document.getElementById("data-input").value = data.shuffled;
   } else {
-    document.getElementById("key-input").value = value;
+    data.key = value;
+    document.getElementById("key-input").value = data.key;
   }
+  skipDec()
   // Manually update byte count after changing textarea values
   updateByteCount();
 }
 
+// upload file handler
 function handleUpload(event, type) {
   const file = event.target.files[0];
   if (!file) return showError("No file selected.");
@@ -82,9 +107,9 @@ function handleUpload(event, type) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, canvas.width, canvas.height);
-        if (code) {
-          decodedValue(type, code.data);
+        const info = jsQR(imageData.data, canvas.width, canvas.height);
+        if (info) {
+          decodedValue(type, info.data);
         } else {
           showError("QR code not detected.");
         }
@@ -107,7 +132,40 @@ function handleUpload(event, type) {
   }
 }
 
-// AES Decrypt
+// skip decryption moving data to unshuffle point
+async function skipDec() {
+  if (maybeShowLoader(data.shuffled || data.key)) {
+    showLoader(true);
+    // Give the browser time to repaint the loader
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  try {
+    const skip = document.getElementById("skip-dec").checked;
+    const outputSection = document.querySelectorAll("#final-output > button");
+    const unshuffleBtn = outputSection[0];
+    unshuffleBtn.classList.add("hidden");
+    document.getElementById("data-base64").value = "";
+    document.getElementById("key-base64").value = "";
+    
+    // Manually update byte count after changing textarea values
+    updateByteCount();
+
+    if (skip && data.shuffled && data.key) {
+      document.getElementById("data-base64").value = data.shuffled;
+      document.getElementById("key-base64").value = data.key;
+      
+      // Manually update byte count after changing textarea values
+      updateByteCount();
+      unshuffleBtn.classList.remove("hidden");
+    } 
+  } catch (err) {
+    showError("Error skipping decryption." + err.message)
+  } finally {
+    showLoader(false);
+  }
+}
+
+// AES gcm Decryption
 async function aesDecrypt(base64, password) {
   const data = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
   const salt = data.slice(0, 16);
@@ -126,71 +184,109 @@ async function aesDecrypt(base64, password) {
   return new Uint8Array(decrypted); // raw bytes
 }
 
-// Step 1: Decrypt Unicode
-async function decryptUnicode() {
-  const input = document.getElementById("unicode-input").value;
-  const pw = document.getElementById("pw-unicode").value;
-  if (!input || !pw) return showError("Encrypted Unicode and password are required.");
+// Step 1: Decrypt data
+async function decryptData() {
+  if (maybeShowLoader(data.shuffled)) {
+    showLoader(true);
+    // Give the browser time to repaint the loader
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  const input = data.shuffled;
+  const pw = document.getElementById("pw-data").value;
+  const outputSection = document.querySelectorAll("#final-output > button");
+  const unshuffleBtn = outputSection[0];
+  if (!input || !pw) return showError("Encrypted data and password are required.");
   try {
     const decryptedBytes = await aesDecrypt(input, pw);
     const decompressed = pako.inflate(decryptedBytes, { to: "string" });
-    document.getElementById("unicode-base64").value = decompressed;
+    data.shuffled = decompressed;
+    document.getElementById("data-base64").value = data.shuffled;
+    unshuffleBtn.classList.remove("hidden");
   } catch (err) {
-    showError("Unicode decryption failed: " + err.message);
+    showError("data decryption failed: " + err.message);
   }
   // Manually update byte count after changing textarea values
   updateByteCount();
+  showLoader(false);
 }
 
 // Step 2: Decrypt Key
 async function decryptKey() {
-  const input = document.getElementById("key-input").value;
+  if (maybeShowLoader(data.key)) {
+    showLoader(true);
+    // Give the browser time to repaint the loader
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  const input = data.key;
   const pw = document.getElementById("pw-key").value;
+  const outputSection = document.querySelectorAll("#final-output > button");
+  const unshuffleBtn = outputSection[0];
   if (!input || !pw) return showError("Encrypted Key and password are required.");
   try {
     const decryptedBytes = await aesDecrypt(input, pw);
     const decompressed = pako.inflate(decryptedBytes, { to: "string" });
-    document.getElementById("key-base64").value = decompressed;
+    data.key = decompressed;
+    document.getElementById("key-base64").value = data.key;
+    unshuffleBtn.classList.remove("hidden");
   } catch (err) {
     showError("Key decryption failed: " + err.message);
   }
   // Manually update byte count after changing textarea values
   updateByteCount();
+  showLoader(false);
 }
 
-function recoverOriginal() {
+// takes data and key and returns undhuffled data
+async function unshuffle() {
+  showLoader(true);
+  if (maybeShowLoader(data.shuffled || data.key)) {
+    // Give the browser time to repaint the loader
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  const detectExt = document.getElementById("detected-ext");
+  const outputSection = document.querySelectorAll("#final-output > button");
+  const saveBtn = outputSection[1];
   try {
-    const chars = document.getElementById("unicode-base64").value;
-    const rotations = document.getElementById("key-base64").value.split(".").map(Number);
-    let result = "", i = 0;
-    for (const ch of chars) {
-      let scrambledCode = ch.codePointAt(0);
-      let rot = rotations[i++] ?? 0;
-      let originalCode = (scrambledCode - rot + 0x10ffff) % 0x10ffff;
-
-      result += String.fromCodePoint(originalCode);
-      
+    const inputData = data.shuffled; 
+    const key = data.key.split(",").map(Number);
+    let i = 0;
+    for (const char of inputData) {
+      let shuffledData = char.codePointAt(0);
+      let rotations = key[i++] ?? 0;
+      let output = (shuffledData - rotations + 0x10ffff) % 0x10ffff;
+      result += String.fromCodePoint(output);
     }
-    document.getElementById("file-code").textContent = result;
-    const bytes = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
-    // const bytes = new TextEncoder().encode(result);
-    const ext = detectFileExtension(bytes);
-    document.getElementById("detected-ext").textContent =
-    "Detected file type: ." + ext;
+    
+    try {
+      result = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
+      document.getElementById("result").value = new TextDecoder().decode(result);
+      const ext = detectFileExtension(result);
+      detectExt.dataset.value = ext;
+      detectExt.textContent = "Detected file type: ." + ext;
+      saveBtn.classList.remove("hidden");
+    } catch (decodeErr) {
+      detectExt.dataset.value = "txt";
+      detectExt.textContent = "File type not detected. Save as .txt?";
+      document.getElementById("result").textContent = result;
+      saveBtn.classList.remove("hidden");
+    }
+
   } catch (err) {
-    showError("Recovery of original text failed.");
+    showError("Recovery failed.");
   }
   // Manually update byte count after changing textarea values
   updateByteCount();
+  showLoader(false)
 }
 
-// Detect file type from magic numbers
+// Detects file type if no result returns txt
 function detectFileExtension(bytes) {
   const hex = [...bytes.slice(0, 8)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")
     .toUpperCase();
 
+  // Known binary file signatures
   if (hex.startsWith("89504E47")) return "png";
   if (hex.startsWith("FFD8FF")) return "jpg";
   if (hex.startsWith("25504446")) return "pdf";
@@ -199,46 +295,142 @@ function detectFileExtension(bytes) {
   if (hex.includes("66747970")) return "mp4";
   if (hex.startsWith("52494646")) return "wav";
   if (hex.startsWith("000001BA")) return "mpg";
-  return "bin";
+
+  // Check for binary (non-printable control characters)
+  const isBinary = bytes.slice(0, 512).some(
+    (b) =>
+      b < 0x09 || (b > 0x0D && b < 0x20) || b > 0x7E
+  );
+
+  if (isBinary) return "bin";
+
+  // Decode and try to guess text format
+  const text = new TextDecoder().decode(bytes.slice(0, 1024)).trim();
+
+  if (text.startsWith("{") || text.startsWith("[")) return "json";
+  if (text.includes(",") && text.match(/\n|;/)) return "csv";
+
+  return "txt";
 }
 
-// Save file from base64 string
-function saveFile() {
-  const base64 = document.getElementById("file-code").textContent;
-  const byteArray = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  const ext = detectFileExtension(byteArray);
-  const blob = new Blob([byteArray]);
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `restored.${ext}`;
-  document.body.appendChild(a);
-  a.click();
-  URL.revokeObjectURL(url);
-  a.remove();
-}
-
-// Optional: trigger save after recovery
-function saveFilet() {
-  recoverOriginal(); // Run unscramble first
-  const base64 = document.getElementById("file-code").textContent;
-  saveFileFromBase64(base64);
-}
-
+// text encoder helper
 function getByteLength(str) {
   return new TextEncoder().encode(str).length;
 }
 
+// updates bytes count
 function updateByteCount() {
-  const inputU = document.getElementById("unicode-input").value;
-  const inputK = document.getElementById("key-input").value;
-  const encU = document.getElementById("unicode-base64").value;
+  // data
+  const dInput = document.getElementById("data-input").value;
+  const encD = document.getElementById("data-base64").value;
+  document.getElementById("data-byte-count").textContent = getByteLength(dInput);
+  document.getElementById("enc-data-byte-count").textContent = getByteLength(encD);
+  
+  // key
+  const kInput = document.getElementById("key-input").value;
   const encK = document.getElementById("key-base64").value;
-  const byte = document.getElementById("file-code").value;
-  document.getElementById("unicode-byte-count").textContent = getByteLength(inputU);
-  document.getElementById("key-byte-count").textContent = getByteLength(inputK);
-  document.getElementById("enc-unicode-byte-count").textContent = getByteLength(encU);
+  document.getElementById("key-byte-count").textContent = getByteLength(kInput);
   document.getElementById("enc-key-byte-count").textContent = getByteLength(encK);
+
+  // result
+  const byte = document.getElementById("result").value;
   document.getElementById("byte-count").textContent = getByteLength(byte);
 }
+
+// Save file from base64 string
+async function saveFile() {
+  if (maybeShowLoader(result)) {
+    showLoader(true);
+    // Give the browser time to repaint the loader
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  try {
+    const ext = document.getElementById("detected-ext").dataset.value;
+    const blob = new Blob([result], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `restored.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+  } catch (err) {
+    showError("Error saving file." + err.message);
+  } finally {
+    showLoader(false);
+  }
+}
+
+// copy function
+function copyData(selector) {
+  const buttons = document.querySelectorAll(selector);
+
+  buttons.forEach(button => {
+    button.addEventListener("click", () => {
+      const parent = button.closest(".copy-block");
+      const textarea = parent?.previousElementSibling;
+
+      if (textarea && textarea.tagName === "TEXTAREA") {
+        textarea.select();
+        textarea.setSelectionRange(0, 99999); // Mobile support
+
+        navigator.clipboard.writeText(textarea.value)
+          .then(() => {
+            button.textContent = "Copied!";
+            button.classList.add("active");
+            setTimeout(() => {
+              button.textContent = "Copy";
+              button.classList.remove("active");
+            }, 1500);
+          })
+          .catch(() => {
+            showError("Failed to copy.");
+          });
+      } else {
+        showError("Nothing found to copy.");
+      }
+    });
+  });
+}
+
+// load dom content and add event listeners
+document.addEventListener("DOMContentLoaded", () => {
+  copyData(".copy-block button");
+  // section: upload 
+  const dataUpload = document.getElementById("data-upload");
+  const keyUpload = document.getElementById("key-upload");
+  if (dataUpload) {
+    dataUpload.addEventListener("change", (e) => handleUpload(e, "data"));
+  }
+  if (keyUpload) {
+    keyUpload.addEventListener("change", (e) => handleUpload(e, "key"));
+  }
+
+  // skip decryption
+  document.getElementById("skip-dec").addEventListener("change", skipDec);
+
+  // Add input listeners for byte count
+  ["data-input", "key-input", "data-base64", "key-base64", "result"].forEach((id) => {
+    const textarea = document.getElementById(id);
+    if (textarea) {
+      textarea.addEventListener("input", updateByteCount);
+    }
+  });
+
+  // Section: Decrypt
+  const [decryptDataBtn, decryptKeyBtn] = document.querySelectorAll("#decrypt > button");
+  decryptDataBtn.addEventListener("click", decryptData);
+  decryptKeyBtn.addEventListener("click", decryptKey);
+
+
+  // Section: Final Output
+  const [unshuffleBtn, saveBtn] = document.querySelectorAll("#final-output > button");
+  unshuffleBtn.addEventListener("click", unshuffle);
+  saveBtn.addEventListener("click", saveFile);
+  
+
+  // Initialize byte count
+  updateByteCount();
+});
+

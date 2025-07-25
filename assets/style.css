@@ -5,10 +5,18 @@
 }
 
 body {
-  font-family: sans-serif;
+  font-family: "Roboto", sans-serif;
+  background: #f9f9f9;
+  margin: 0;
+}
+
+.container {
   max-width: 1000px;
   margin: auto;
-  padding: 0.5em;
+  background: #fff;
+  padding: 0;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .flex {
@@ -110,9 +118,10 @@ nav a {
   display: none;
   border: 1px solid #f44336;
   z-index: 1000;
+  max-width: 80%;
 }
 
-#qr-unicode canvas, #qr-key canvas {
+#qr-data canvas, #qr-key canvas {
   width: 100% !important; 
   height: auto !important;
 }
@@ -205,6 +214,12 @@ nav a {
   }
 }
 
+@media (min-width: 500px) {
+  .container {
+    padding: 1em;
+  }
+}
+
 @media (min-width: 700px) {
   body {
     padding: 2em;
@@ -214,7 +229,7 @@ nav a {
     padding: 2em;
   }
 
-  #qr-unicode canvas, #qr-key canvas {
+  #qr-data canvas, #qr-key canvas {
    padding: 2em;
  }
 }

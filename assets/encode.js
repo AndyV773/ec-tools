@@ -13,9 +13,9 @@ function showLoader(show = true) {
     document.querySelector(".loader-overlay").classList.toggle("hidden", !show);
 }
 
-function maybeShowLoader(text) {
+function maybeShowLoader(input) {
   const threshold = 50000; // 50,000 characters
-  if (text.length > threshold) {
+  if (input.length > threshold) {
     showLoader(true);
     return true;
   }
@@ -44,7 +44,7 @@ function updateViews(fileInput) {
 }
 
 // upload file handler
-function handleFile(file) {
+function handleUpload(file) {
     const reader = new FileReader();
     reader.onload = function (e) {
         fileInput = new Uint8Array(e.target.result);
@@ -54,18 +54,19 @@ function handleFile(file) {
     reader.readAsArrayBuffer(file);
 }
 
-
+// will add bias strangth at later date const rand = Math.pow(Math.random(), biasStrength);
 function randomizer(allChar) {
-  const randProduct = Math.random() * Math.random(); // bias toward lower numbers
+  const rand = Math.random() * Math.random(); // bias toward lower numbers
 
   if (allChar) {
-    return Math.floor(randProduct * (0x10ffff + 1));
+    return Math.floor(rand * (0x10ffff + 1));
   } else {
-    return Math.floor(randProduct * 800) + 1;
+    return Math.floor(rand * 800) + 1;
   }
 }
 
-async function scrambleText() {
+// function to shuffle the text using randomizer returning shuffled and key data
+async function shuffleData() {
   showLoader(true);
   data = { shuffled: "", key: [] };
   const input = document.getElementById("input-text").value;
@@ -77,26 +78,26 @@ async function scrambleText() {
   try {
     for (let i = 0; i < input.length; i++) {
       const char = input[i];
-      const code = char.codePointAt(0);
+      const codePoint = char.codePointAt(0);
 
-      let randCode, shuffledCode;
+      let rotation, shuffledData;
 
       do {
-        randCode = randomizer(allChar);
-        shuffledCode = code + randCode;
+        rotation = randomizer(allChar);
+        shuffledData = codePoint + rotation;
       } while (
-        shuffledCode < 0 ||
-        shuffledCode > 0x10ffff ||
-        (shuffledCode >= 0xd800 && shuffledCode <= 0xdfff)
+        shuffledData < 0 ||
+        shuffledData > 0x10ffff ||
+        (shuffledData >= 0xd800 && shuffledData <= 0xdfff)
       );
 
-      data.shuffled += String.fromCodePoint(shuffledCode);
-      data.key.push(randCode);
+      data.shuffled += String.fromCodePoint(shuffledData);
+      data.key.push(rotation);
     }
 
-    data.key = data.key.join(".");
+    data.key = data.key.join(",");
 
-    document.getElementById("scrambled-unicode").value = data.shuffled;
+    document.getElementById("shuffled-data").value = data.shuffled;
     document.getElementById("rotation-key").value = data.key;
     // Manually update byte count after changing textarea values
     updateByteCount();
@@ -108,31 +109,32 @@ async function scrambleText() {
   }
 }
 
+// skip encryption moving data to download point
 async function skipEnc() {
-  if (maybeShowLoader(data.key)) {
+  if (maybeShowLoader(data.shuffled || data.key)) {
     showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
   try {
     const skip = document.getElementById("skip-enc").checked;
-    document.getElementById("input-unicode").value = "";
-    document.getElementById("input-key").value = "";
-    document.getElementById("qr-unicode").innerHTML = "";
+    document.getElementById("data-output").value = "";
+    document.getElementById("key-output").value = "";
+    document.getElementById("qr-data").innerHTML = "";
     document.getElementById("qr-key").innerHTML = "";
-    setUnicodeCorrectionLevel();
+    setDataCorrectionLevel();
     setKeyCorrectionLevel();
     // Manually update byte count after changing textarea values
     updateByteCount();
 
     if (skip && data.shuffled && data.key) {
-      document.getElementById("input-unicode").value = data.shuffled;
-      document.getElementById("input-key").value = data.key;
-      setUnicodeCorrectionLevel();
+      document.getElementById("data-output").value = data.shuffled;
+      document.getElementById("key-output").value = data.key;
+      setDataCorrectionLevel();
       setKeyCorrectionLevel();
       // Manually update byte count after changing textarea values
       updateByteCount();
-    }
+    } 
   } catch (err) {
     showError("Error skipping encryption." + err.message)
   } finally {
@@ -177,27 +179,27 @@ async function aesEncrypt(data, password) {
 }
 
 // pako compression helper
-function compress(text) {
-  return pako.deflate(text);
+function compress(input) {
+  return pako.deflate(input);
 }
 
-// compress and encrypt unicode
-async function encryptUnicode() {
+// compress and encrypt data
+async function encryptData() {
   if (maybeShowLoader(data.shuffled)) {
     showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000)); 
   }
   data.shuffled = compress(data.shuffled);
-  const pwU = document.getElementById("pw-unicode").value;
+  const pwD = document.getElementById("pw-data").value;
   
-  if (!data.shuffled || !pwU ) return showError("Password required to encrypt.");
+  if (!data.shuffled || !pwD ) return showError("Password required to encrypt.");
 
   try {
-    data.shuffled = await aesEncrypt(data.shuffled, pwU);
-    document.getElementById("enc-unicode").value = data.shuffled;
-    document.getElementById("input-unicode").value = data.shuffled;
-    setUnicodeCorrectionLevel();
+    data.shuffled = await aesEncrypt(data.shuffled, pwD);
+    document.getElementById("enc-data").value = data.shuffled;
+    document.getElementById("data-output").value = data.shuffled;
+    setDataCorrectionLevel();
   } catch (err) {
     showError("Encryption failed: " + err.message);
   }
@@ -222,7 +224,7 @@ async function encryptKey() {
   try {
     data.key = await aesEncrypt(data.key, pwK);
     document.getElementById("enc-key").value = data.key;
-    document.getElementById("input-key").value = data.key;
+    document.getElementById("key-output").value = data.key;
     setKeyCorrectionLevel();
   } catch (err) {
     showError("Encryption failed: " + err.message);
@@ -237,93 +239,101 @@ function getByteLength(str) {
   return new TextEncoder().encode(str).length;
 }
 
+// updates bytes count
 function updateByteCount() {
+  //input
   const inputText = document.getElementById("input-text").value;
-  const code = document.getElementById("scrambled-unicode").value;
-  const key = document.getElementById("rotation-key").value;
-  const encU = document.getElementById("enc-unicode").value;
-  const encK = document.getElementById("enc-key").value;
-  const inputU = document.getElementById("input-unicode").value;
-  const inputK = document.getElementById("input-key").value;
   document.getElementById("text-byte-count").textContent = getByteLength(inputText);
-  document.getElementById("scrambled-byte-count").textContent = getByteLength(code);
+  
+  // data
+  const data = document.getElementById("shuffled-data").value;
+  const encD = document.getElementById("enc-data").value;
+  const dOut = document.getElementById("data-output").value;
+  document.getElementById("shuffled-byte-count").textContent = getByteLength(data);
+  document.getElementById("enc-data-byte-count").textContent = getByteLength(encD);
+  document.getElementById("data-byte-count").textContent = getByteLength(dOut);
+  
+  // key
+  const key = document.getElementById("rotation-key").value;
+  const encK = document.getElementById("enc-key").value;
+  const kOut = document.getElementById("key-output").value;
   document.getElementById("rotation-byte-count").textContent = getByteLength(key);
-  document.getElementById("enc-unicode-byte-count").textContent = getByteLength(encU);
   document.getElementById("enc-key-byte-count").textContent = getByteLength(encK);
-  document.getElementById("unicode-byte-count").textContent = getByteLength(inputU);
-  document.getElementById("key-byte-count").textContent = getByteLength(inputK);
+  document.getElementById("key-byte-count").textContent = getByteLength(kOut);
 }
 
-function setUnicodeCorrectionLevel() {
-  const uInput = getByteLength(document.getElementById("input-unicode").value);
-  const label = document.getElementById("qr-error-level-unicode");
-  const uDwn = document.getElementById("uni-dwn");
-  const uQr = document.getElementById("unicode-qr-gen");
+// set information for data if qr generation is accepted
+function setDataCorrectionLevel() {
+  const dOut = getByteLength(document.getElementById("data-output").value);
+  const label = document.getElementById("qr-error-level-data");
+  const dDwn = document.getElementById("data-dwn");
+  const dQr = document.getElementById("data-qr-gen");
 
-  if (uInput === 0) {
+  if (dOut === 0) {
     label.innerText = "No data";
     label.dataset.value = "";
-    uDwn.classList.add("hidden");
-    uQr.classList.add("hidden");
-    document.getElementById("download-qr-unicode").classList.add("hidden");
-  } else if (uInput <= 1270) {
+    dDwn.classList.add("hidden");
+    dQr.classList.add("hidden");
+    document.getElementById("download-qr-data").classList.add("hidden");
+  } else if (dOut <= 1270) {
     label.innerText = "High (H) - max 1270 B";
     label.dataset.value = "H";
-    uDwn.classList.remove("hidden");
-    uQr.classList.remove("hidden");
-  } else if (uInput > 1270 && uInput <= 1660) {
+    dDwn.classList.remove("hidden");
+    dQr.classList.remove("hidden");
+  } else if (dOut > 1270 && dOut <= 1660) {
     label.innerText = "Quartile (Q) - max 1660 B";
     label.dataset.value = "Q";
-    uDwn.classList.remove("hidden");
-    uQr.classList.remove("hidden");
-  } else if (uInput > 1660 && uInput <= 2300) {
+    dDwn.classList.remove("hidden");
+    dQr.classList.remove("hidden");
+  } else if (dOut > 1660 && dOut <= 2300) {
     label.innerText = "Medium (M) - max 2300 B";
     label.dataset.value = "M";
-    uDwn.classList.remove("hidden");
-    uQr.classList.remove("hidden");
-  } else if (uInput > 2300 && uInput <= 2950) {
+    dDwn.classList.remove("hidden");
+    dQr.classList.remove("hidden");
+  } else if (dOut > 2300 && dOut <= 2950) {
     label.innerText = "Low (L) - max 2950 B";
     label.dataset.value = "L";
-    uDwn.classList.remove("hidden");
-    uQr.classList.remove("hidden");
+    dDwn.classList.remove("hidden");
+    dQr.classList.remove("hidden");
   } else {
     label.innerText = "Data too large for QR max 2950 B";
     label.dataset.value = "";
-    uDwn.classList.remove("hidden");
-    uQr.classList.add("hidden");
-    document.getElementById("download-qr-unicode").classList.add("hidden");
+    dDwn.classList.remove("hidden");
+    dQr.classList.add("hidden");
+    document.getElementById("download-qr-data").classList.add("hidden");
   }
   
 }
 
+// set information for key if qr generation is accepted
 function setKeyCorrectionLevel() {
-  const keyInput = getByteLength(document.getElementById("input-key").value);
+  const kOut = getByteLength(document.getElementById("key-output").value);
   const label = document.getElementById("qr-error-level-key");
   const kDwn = document.getElementById("key-dwn");
   const kQr = document.getElementById("key-qr-gen");
 
-  if (keyInput === 0) {
+  if (kOut === 0) {
     label.innerText = "No data";
     label.dataset.value = "";
     kDwn.classList.add("hidden");
     kQr.classList.add("hidden");
     document.getElementById("download-qr-key").classList.add("hidden");
-  } else if (keyInput <= 1270) {
+  } else if (kOut <= 1270) {
     label.innerText = "High (H) - max 1270 B";
     label.dataset.value = "H";
     kDwn.classList.remove("hidden");
     kQr.classList.remove("hidden");
-  } else if (keyInput > 1270 && keyInput <= 1660) {
+  } else if (kOut > 1270 && kOut <= 1660) {
     label.innerText = "Quartile (Q) - max 1660 B";
     label.dataset.value = "Q";
     kDwn.classList.remove("hidden");
     kQr.classList.remove("hidden");
-  } else if (keyInput > 1660 && keyInput <= 2300) {
+  } else if (kOut > 1660 && kOut <= 2300) {
     label.innerText = "Medium (M) - max 2300 B";
     label.dataset.value = "M";
     kDwn.classList.remove("hidden");
     kQr.classList.remove("hidden");
-  } else if (keyInput > 2300 && keyInput <= 2950) {
+  } else if (kOut > 2300 && kOut <= 2950) {
     label.innerText = "Low (L) - max 2950 B";
     label.dataset.value = "L";
     kDwn.classList.remove("hidden");
@@ -337,30 +347,31 @@ function setKeyCorrectionLevel() {
   }
 }
 
+// generate qr code for data
+function generateQRCodeData() {
+  const encD = data.shuffled;
+  const level = document.getElementById("qr-error-level-data").dataset.value;
 
-function generateQRCodeUnicode() {
-  const encU = data.shuffled;
-  const level = document.getElementById("qr-error-level-unicode").dataset.value;
-
-  if (!encU) return showError("Encrypted values are missing.");
-  const qrU = document.getElementById("qr-unicode");
+  if (!encD) return showError("Encrypted values are missing.");
+  const qrD = document.getElementById("qr-data");
   // Clear previous
-  qrU.innerHTML = "";
+  qrD.innerHTML = "";
 
-  // Generate Unicode QR
-  QRCode.toCanvas(encU, {
+  // Generate data QR
+  QRCode.toCanvas(encD, {
     errorCorrectionLevel: level,
     margin: 1,
     scale: 8 // Automatically adjusts size based on content
   }, (err, canvas) => {
-    if (err) return showError("Unicode QR generation error: " + err.message);
-    qrU.appendChild(canvas);
-    document.getElementById("download-qr-unicode").classList.remove("hidden");
+    if (err) return showError("Data QR generation error: " + err.message);
+    qrD.appendChild(canvas);
+    document.getElementById("download-qr-data").classList.remove("hidden");
   });
 }
 
+// generate qr code for key
 function generateQRCodeKey() {
-  const encK = document.getElementById("input-key").value;
+  const encK = data.key;
   const level = document.getElementById("qr-error-level-key").dataset.value;
 
   if (!encK) return showError("Encrypted values are missing.");
@@ -389,27 +400,27 @@ const date = Date.now().toString().slice(0, 6);
 const id = date + randomNumber();
 
 // download qr code
-function downloadQR(containerId, label) {
-  const canvas = document.querySelector(`#${containerId} canvas`);
+function downloadQR(containerid, name) {
+  const canvas = document.querySelector(`#${containerid} canvas`);
   if (!canvas) return showError("QR code not generated yet.");
   const link = document.createElement("a");
   link.href = canvas.toDataURL();
-  link.download = `${label}${id}.png`;
+  link.download = `${name}${id}.png`;
   link.click();
 }
 
 // download as .txt
-async function downloadTextFile(filename, text) {
+async function downloadTextFile(name, input) {
   showLoader(true);
-  if (maybeShowLoader(text)) {
+  if (maybeShowLoader(input)) {
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
   try {
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const blob = new Blob([input], { type: "text/plain;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${filename}${id}.txt`;;
+    link.download = `${name}${id}.txt`;;
     link.click();
     URL.revokeObjectURL(link.href);
   } catch (err) {
@@ -419,7 +430,8 @@ async function downloadTextFile(filename, text) {
   }
 }
 
-function copyCode(selector) {
+// copy function
+function copyData(selector) {
   const buttons = document.querySelectorAll(selector);
 
   buttons.forEach(button => {
@@ -441,74 +453,79 @@ function copyCode(selector) {
             }, 1500);
           })
           .catch(() => {
-            showError("Failed to copy text.");
+            showError("Failed to copy.");
           });
       } else {
-        showError("No textarea found to copy.");
+        showError("Nothing found to copy.");
       }
     });
   });
 }
 
-
+// load dom content and add event listeners
 document.addEventListener("DOMContentLoaded", () => {
-  copyCode(".copy-block button");
+  copyData(".copy-block button");
   // file upload event listener calls handle file function
   document.getElementById("file-input").addEventListener("change", function (e) {
     const file = e.target.files[0];
     if (!file) {
       return;
     } else {
-      handleFile(file);
+      handleUpload(file);
     }
-  });
-
-  // For input-key
-  document.getElementById("input-key").addEventListener("input", () => {
-    updateByteCount();
-    setKeyCorrectionLevel();
-  });
-
-  // For input-unicode
-  document.getElementById("input-unicode").addEventListener("input", () => {
-    updateByteCount();
-    setUnicodeCorrectionLevel();
   });
 
   // Input text area: update byte count on input
   document.getElementById("input-text").addEventListener("input", updateByteCount);
 
-  // Scramble button: call scrambleText on click
-  document.getElementById("shuffle").addEventListener("click", scrambleText);
+  // Shuffle button: call shuffle data on click
+  document.getElementById("shuffle").addEventListener("click", shuffleData);
 
   // skip encryption
   document.getElementById("skip-enc").addEventListener("change", skipEnc);
   
   // Textareas: oninput calls updateByteCount
-  document.getElementById("scrambled-unicode").addEventListener("input", updateByteCount);
+  document.getElementById("shuffled-data").addEventListener("input", updateByteCount);
   document.getElementById("rotation-key").addEventListener("input", updateByteCount);
-  document.getElementById("enc-unicode").addEventListener("input", updateByteCount);
+  document.getElementById("enc-data").addEventListener("input", updateByteCount);
   document.getElementById("enc-key").addEventListener("input", updateByteCount);
 
   // Buttons: onclick calls respective encrypt functions
-  document.getElementById("enc-uni-btn").addEventListener("click", encryptUnicode);
+  document.getElementById("enc-data-btn").addEventListener("click", encryptData);
   document.getElementById("enc-key-btn").addEventListener("click", encryptKey);
 
+  // For key
+  document.getElementById("key-output").addEventListener("input", () => {
+    updateByteCount();
+    setKeyCorrectionLevel();
+  });
+
+  // For data
+  document.getElementById("data-output").addEventListener("input", () => {
+    updateByteCount();
+    setDataCorrectionLevel();
+  });
+
   // generate qr code
-  document.getElementById("unicode-qr-gen").addEventListener("click", generateQRCodeUnicode);
+  document.getElementById("data-qr-gen").addEventListener("click", generateQRCodeData);
   document.getElementById("key-qr-gen").addEventListener("click", generateQRCodeKey);
   
-  // download .txt and qr code 
-  document.getElementById("unicode-txt").addEventListener("click", () => {
-    downloadTextFile('unicode', data.shuffled);
+  // download .txt 
+  document.getElementById("data-txt").addEventListener("click", () => {
+    downloadTextFile('data', data.shuffled);
   });
   document.getElementById("key-txt").addEventListener("click", () => {
     downloadTextFile('key', data.key);
   });
-  document.querySelector("#download-qr-unicode button").addEventListener("click", () => {
-    downloadQR("qr-unicode", "unicode");
+
+  // download qr
+  document.querySelector("#download-qr-data button").addEventListener("click", () => {
+    downloadQR("qr-data", "data");
   });
   document.querySelector("#download-qr-key button").addEventListener("click", () => {
     downloadQR("qr-key", "key");
   });
+
+  // Initialize byte count
+  updateByteCount();
 });

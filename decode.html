@@ -8,58 +8,83 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
   </head>
   <body>
-    <nav>
-      <a href="index.html">Encode</a>
-      <a href="optimized.html">Opt-Enc</a>
-    </nav>
+    <main class="container">
+      <nav>
+        <a href="index.html">Encode</a>
+        <a href="optimized.html">Opt-Enc</a>
+      </nav>
 
-    <h1>Decode</h1>
-    <div id="error-msg"></div>
-
-    <section>
-      <h2>Scan QR</h2>
-      <div class="m300">
-        <video id="qr-video" width="300" height="200" autoplay muted></video>
-        <button onclick="startScanner('unicodeOutput')">Scan Unicode</button>
-        <button onclick="startScanner('keyOutput')">Scan Key</button>
+      <h1>Decode</h1>
+      <div id="error-msg"></div>
+      <div class="loader-overlay hidden">
+        <div class="loader-wrapper">
+          <div class="loader"></div>
+          <div class="loader-icon">🧩</div>
+        </div>
+        <div class="loader-text">Processing... Please wait</div>
       </div>
-      <textarea id="unicodeOutput" placeholder="Unicode QR Output"></textarea>
-      <textarea id="keyOutput" placeholder="Key QR Output"></textarea>
-    </section>
 
-    <section>
-      <h2>Upload QR Images or .txt file</h2>
-      <label for="unicode-upload">Upload Unicode (Image or .txt):</label>
-      <input type="file" id="unicode-upload" accept=".txt,image/*" onchange="handleUpload(event, 'unicode')" />
-      <label for="key-upload">Upload Key (Image or .txt):</label>
-      <input type="file" id="key-upload" accept=".txt,image/*" onchange="handleUpload(event, 'key')" />
-      <textarea oninput="updateByteCount()" id="unicode-input" placeholder="Encrypted Unicode data"></textarea>
-      <p> Unicode Byte size: <span id="unicode-byte-count">0</span> bytes </p>
-      <textarea oninput="updateByteCount()" id="key-input" placeholder="Encrypted Key data"></textarea>
-      <p> Key Byte size: <span id="key-byte-count">0</span> bytes </p>
-    </section>
+      <section>
+        <h2>Scan QR</h2>
+        <div class="m300">
+          <video id="qr-video" width="300" height="200" autoplay muted></video>
+          <button onclick="startScanner('data-input')">Scan data</button>
+          <button onclick="startScanner('key-input')">Scan Key</button>
+        </div>
+      </section>
 
-    <section>
-      <h2>Decrypt</h2>
-      <input id="pw-unicode" placeholder="Password for Unicode" />
-      <button onclick="decryptUnicode()">Decrypt Unicode</button>
-      <textarea oninput="updateByteCount()" id="unicode-base64"></textarea>
-      <p> Unicode Byte size: <span id="enc-unicode-byte-count">0</span> bytes </p>
-      <input id="pw-key" placeholder="Password for Key" />
-      <button onclick="decryptKey()">Decrypt Key</button>
-      <textarea oninput="updateByteCount()" id="key-base64"></textarea>
-      <p> Key Byte size: <span id="enc-key-byte-count">0</span> bytes </p>
-    </section>
+      <section>
+        <h2>Upload QR Images or .txt file</h2>
+        <label for="data-upload">Upload data (Image or .txt):</label>
+        <input type="file" id="data-upload" accept=".txt,image/*" />
+        <label for="key-upload">Upload Key (Image or .txt):</label>
+        <input type="file" id="key-upload" accept=".txt,image/*" />
+        <textarea id="data-input" placeholder="Encrypted data" readonly></textarea>
+        <div class="copy-block">
+          <p> data Byte size: <span id="data-byte-count">0</span> bytes </p>
+          <button>Copy</button>
+        </div>
+        <textarea id="key-input" placeholder="Encrypted Key" readonly></textarea>
+        <div class="copy-block">
+          <p> Key Byte size: <span id="key-byte-count">0</span> bytes </p>
+          <button>Copy</button>
+        </div>
+      </section>
 
-    <section>
-      <h2>Final Output</h2>
-      <button onclick="recoverOriginal()">Recover Original</button>
-      <p id="detected-ext">Detected file type: (none)</p>
-      <textarea oninput="updateByteCount()" id="file-code"></textarea>
-      <p> Byte size: <span id="byte-count">0</span> bytes </p>
-      <button onclick="saveFile()">Recover & Save File</button>
-    </section>
+      <section id="decrypt">
+        <h2>Decrypt</h2>
+        <label class="flex">
+          Skip decryption
+          <input type="checkbox" id="skip-dec" />
+        </label>
+        <input id="pw-data" placeholder="Password for data" />
+        <textarea id="data-base64" placeholder="Decrypted data" readonly></textarea>
+        <div class="copy-block">
+          <p> data Byte size: <span id="enc-data-byte-count">0</span> bytes </p>
+          <button>Copy</button>
+        </div>
+        <button>Decrypt data</button>
+        <input id="pw-key" placeholder="Password for Key" />
+        <textarea id="key-base64" placeholder="Decrypted Key" readonly></textarea>
+        <div class="copy-block">
+          <p> Key Byte size: <span id="enc-key-byte-count">0</span> bytes </p>
+          <button>Copy</button>
+        </div>
+        <button>Decrypt Key</button>
+      </section>
 
+      <section id="final-output">
+        <h2>Final Output</h2>
+        <button class="hidden">Unshuffle Data</button>
+        <p id="detected-ext">Detected file type: (none)</p>
+        <textarea id="result" placeholder="Output result..."></textarea>
+        <div class="copy-block">
+          <p> Byte size: <span id="byte-count">0</span> bytes </p>
+          <button>Copy</button>
+        </div>
+        <button class="hidden">Save File</button>
+      </section>
+    </main>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="assets/decode.js"></script>
   </body>
