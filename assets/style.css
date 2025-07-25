@@ -162,7 +162,6 @@ nav a {
   color: #d0f0ff;
 }
 
-
 .loader {
   width: 80px;
   height: 80px;
@@ -178,6 +177,24 @@ nav a {
   border-right: 6px solid #00ffd5;
   border-bottom: 6px solid transparent;
   border-left: 6px solid #00ffd5;
+}
+
+.loader-fade {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 255, 213, 1) 0deg,
+    rgba(0, 255, 213, 0.1) 90deg,
+    rgba(0, 255, 213, 0) 360deg
+  );
+  animation: spin 0.8s linear infinite;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px #00ffd5;
 }
 
 .loader-icon {

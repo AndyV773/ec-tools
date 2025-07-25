@@ -8,6 +8,15 @@ function showError(message) {
   setTimeout(() => (msg.style.display = "none"), 3000);
 }
 
+// random number for files
+function randomNumber(max = 9999) {
+    const date = Date.now().toString().slice(0, 6);
+    const rand = Math.floor(Math.random() * max);
+    return date + rand;
+}
+
+const fileId = randomNumber();
+
 // show loader and loading text
 function showLoader(show = true) {
     document.querySelector(".loader-overlay").classList.toggle("hidden", !show);
@@ -21,7 +30,6 @@ function maybeShowLoader(input) {
   }
   return false;
 }
-
 
 // file size helper
 function formatBytes(bytes) {
@@ -67,10 +75,10 @@ function randomizer(allChar) {
 
 // function to shuffle the text using randomizer returning shuffled and key data
 async function shuffleData() {
-  showLoader(true);
   data = { shuffled: "", key: [] };
   const input = document.getElementById("input-text").value;
   const allChar = document.getElementById("all-char").checked;
+  showLoader(true);
   if (maybeShowLoader(input)) {
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -185,18 +193,18 @@ function compress(input) {
 
 // compress and encrypt data
 async function encryptData() {
+  data.shuffled = compress(data.shuffled);
+  const pw = document.getElementById("pw-data").value;
+  if (!data.shuffled || !pw ) return showError("Password required to encrypt.");
+  
   if (maybeShowLoader(data.shuffled)) {
     showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000)); 
   }
-  data.shuffled = compress(data.shuffled);
-  const pwD = document.getElementById("pw-data").value;
-  
-  if (!data.shuffled || !pwD ) return showError("Password required to encrypt.");
 
   try {
-    data.shuffled = await aesEncrypt(data.shuffled, pwD);
+    data.shuffled = await aesEncrypt(data.shuffled, pw);
     document.getElementById("enc-data").value = data.shuffled;
     document.getElementById("data-output").value = data.shuffled;
     setDataCorrectionLevel();
@@ -211,18 +219,18 @@ async function encryptData() {
 
 // compress and encrypt key 
 async function encryptKey() {
+  data.key = compress(data.key);
+  const pw = document.getElementById("pw-key").value;
+  if (!data.key || !pw) return showError("Password required to encrypt.");
+
   if (maybeShowLoader(data.key)) {
     showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
-  data.key = compress(data.key);
-  const pwK = document.getElementById("pw-key").value;
-
-  if (!data.key || !pwK) return showError("Password required to encrypt.");
 
   try {
-    data.key = await aesEncrypt(data.key, pwK);
+    data.key = await aesEncrypt(data.key, pw);
     document.getElementById("enc-key").value = data.key;
     document.getElementById("key-output").value = data.key;
     setKeyCorrectionLevel();
@@ -391,13 +399,7 @@ function generateQRCodeKey() {
   });
 }
 
-// random number for files
-function randomNumber(max = 9999) {
-    return Math.floor(Math.random() * max);
-}
 
-const date = Date.now().toString().slice(0, 6);
-const id = date + randomNumber();
 
 // download qr code
 function downloadQR(containerid, name) {
@@ -405,22 +407,22 @@ function downloadQR(containerid, name) {
   if (!canvas) return showError("QR code not generated yet.");
   const link = document.createElement("a");
   link.href = canvas.toDataURL();
-  link.download = `${name}${id}.png`;
+  link.download = `${name}${fileId}.png`;
   link.click();
 }
 
 // download as .txt
-async function downloadTextFile(name, input) {
+async function downloadTextFile(name, content) {
   showLoader(true);
-  if (maybeShowLoader(input)) {
+  if (maybeShowLoader(content)) {
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
   try {
-    const blob = new Blob([input], { type: "text/plain;charset=utf-8" });
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${name}${id}.txt`;;
+    link.download = `${name}${fileId}.txt`;;
     link.click();
     URL.revokeObjectURL(link.href);
   } catch (err) {

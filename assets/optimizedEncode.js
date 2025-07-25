@@ -1,7 +1,5 @@
 let data = { shuffled: "", key: [] },
-fileInput = null,
-encryptedUnicode,
-encryptedKey;
+    fileInput = null;
 
 // error message
 function showError(message) {
@@ -13,22 +11,33 @@ function showError(message) {
 
 // show loader and loading text
 function showLoader(show = true) {
-    document.getElementById("loader").classList.toggle("hidden", !show);
-    document.getElementById("loader-text").style.display = show ? "block" : "none";
+    document.querySelector(".loader-overlay").classList.toggle("hidden", !show);
+}
+
+function maybeShowLoader(input) {
+  const threshold = 50000; // 50,000 characters
+  if (input.length > threshold) {
+    showLoader(true);
+    return true;
+  }
+  return false;
 }
 
 // random number for files
 function randomNumber(max = 9999) {
-    return Math.floor(Math.random() * max);
+    const date = Date.now().toString().slice(0, 6);
+    const rand = Math.floor(Math.random() * max);
+    return date + rand;
 }
 
-const date = Date.now().toString().slice(0, 6);
-const id = date + randomNumber();
+const fileId = randomNumber();
 
+// text encoder helper
 function getByteLength(str) {
     return new TextEncoder().encode(str).length;
 }
 
+// updates bytes count
 function updateByteCount() {
     const input = document.getElementById("text-input").value;
     document.getElementById("byte-count").textContent = getByteLength(input);
@@ -43,7 +52,7 @@ function formatBytes(bytes) {
 }
 
 // upload file handler
-function handleFile(file) {
+function handleUpload(file) {
     const reader = new FileReader();
     reader.onload = function (e) {
         fileInput = new Uint8Array(e.target.result);
@@ -54,12 +63,12 @@ function handleFile(file) {
 
 // random helper for shuffler
 function randomizer(allChar) {
-    const randProduct = Math.random() * Math.random(); // bias toward lower numbers
+    const rand = Math.random() * Math.random(); // bias toward lower numbers
 
     if (allChar) {
-        return Math.floor(randProduct * (0x10ffff + 1));
+        return Math.floor(rand * (0x10ffff + 1));
     } else {
-        return Math.floor(randProduct * 800) + 1;
+        return Math.floor(rand * 800) + 1;
     }
 }
 
@@ -103,14 +112,25 @@ function compress(text) {
     return pako.deflate(text);
 }
 
-// download as .txt file
-    function downloadTextFile(name, content) {
-    const blob = new Blob([content], { type: "text/plain" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${name}${id}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+// download as .txt
+async function downloadTextFile(name, content) {
+    if (maybeShowLoader(content)) {
+        showLoader(true);
+        // Give the browser time to repaint the loader
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    try {
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${name}${fileId}.txt`;;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    } catch (err) {
+        showError("Error saving file." + err.message);
+    } finally {
+        showLoader(false);
+    }
 }
 
 // qr code generator
@@ -118,86 +138,126 @@ function generateQRCode(data, containerId) {
     const container = document.getElementById(containerId);
     container.innerHTML = "";
     QRCode.toCanvas(data, { errorCorrectionLevel: "M", scale: 6 }, (err, canvas) => {
-        if (err) return console.error("QR error", err);
+        if (err) return showError("QR error", err);
         container.appendChild(canvas);
     });
 }
 
 // download qr code as .png
-function downloadQR(containerId, label) {
+function downloadQR(containerId, name) {
     const canvas = document.querySelector(`#${containerId} canvas`);
     if (!canvas) return showError("QR code not generated.");
     const link = document.createElement("a");
     link.href = canvas.toDataURL();
-    link.download = `${label}${id}.png`;
+    link.download = `${name}${fileId}.png`;
     link.click();
 }
 
 // handle encryption and generate
 async function process() {
-    showLoader(true);
     data = { shuffled: "", key: [] };
-    const pwU = document.getElementById("pw-code").value;
+    const pwD = document.getElementById("pw-data").value;
     const pwK = document.getElementById("pw-key").value;
     const allChar = document.getElementById("all-char").checked;
-    if (!pwU || !pwK) {
-        showLoader(false);
-        return alert("Please enter a password.");
-    }
-
+    
     let rawInput = "";
     if (fileInput) {
         rawInput = btoa(String.fromCharCode(...fileInput));
     } else {
         const text = document.getElementById("text-input").value;
-        if (!text) return alert("No input provided.");
+        if (!text) return showError("No input provided.");
         rawInput = text;
     }
 
-    // shuffles unicode randomly using randomizer
-    for (let i = 0; i < rawInput.length; i++) {
-        const code = rawInput.codePointAt(i);
-        let randCode, shuffledCode;
-
-        do {
-        randCode = randomizer(allChar);
-        shuffledCode = code + randCode;
-        } while (shuffledCode < 0 || shuffledCode > 0x10ffff || (shuffledCode >= 0xd800 && shuffledCode <= 0xdfff));
-
-        data.shuffled += String.fromCodePoint(shuffledCode);
-        data.key.push(randCode);
+    if (!pwD || !pwK) {
+        return showError("Please enter a password.");
     }
 
-    const compUnicode = compress(data.shuffled);
-    const compKey = compress(data.key.join("."));
+    showLoader(true);
+    // Give the browser time to repaint the loader
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // shuffles data randomly using randomizer
     try {
-        encryptedUnicode = await aesEncrypt(compUnicode, pwU);
-        encryptedKey = await aesEncrypt(compKey, pwK);
+        for (let i = 0; i < rawInput.length; i++) {
+            const codePoint = rawInput.codePointAt(i);
+            let rotation, shuffledData;
+
+            do {
+            rotation = randomizer(allChar);
+            shuffledData = codePoint + rotation;
+            } while (
+                shuffledData < 0 ||
+                shuffledData > 0x10ffff ||
+                (shuffledData >= 0xd800 && shuffledData <= 0xdfff)
+            );
+
+            data.shuffled += String.fromCodePoint(shuffledData);
+            data.key.push(rotation);
+        }
+
+        data.shuffled = compress(data.shuffled);
+        data.key = compress(data.key.join(","));
+
+    } catch (err) {
+        showError("Encryption failed: " + err.message);        
+    }
+
+    // encryts data useing aes and returns txt and qr
+    try {
+        data.shuffled = await aesEncrypt(data.shuffled, pwD);
+        data.key = await aesEncrypt(data.key, pwK);
         document.getElementById("output-actions").classList.remove("hidden");
 
-        if (encryptedUnicode.length < 2000) {
-        generateQRCode(encryptedUnicode, "qr-unicode");
-        document.getElementById("qr-button-unicode").classList.remove("hidden");
+        if (data.shuffled.length < 2000) {
+            generateQRCode(data.shuffled, "qr-data");
+            document.getElementById("qr-button-data").classList.remove("hidden");
         }
 
-        if (encryptedKey.length < 2000) {
-        generateQRCode(encryptedKey, "qr-key");
-        document.getElementById("qr-button-key").classList.remove("hidden");
+        if (data.key.length < 2000) {
+            generateQRCode(data.key, "qr-key");
+            document.getElementById("qr-button-key").classList.remove("hidden");
         }
     } catch (err) {
-        alert("Encryption failed: " + err.message);
+        showError("Encryption failed: " + err.message);
     }
 
     showLoader(false);
 }
 
-// file upload event listener calls handle file function
-document.getElementById("file-input").addEventListener("change", function (e) {
-    const file = e.target.files[0];
-    if (!file) {
-        return;
-    } else {
-        handleFile(file);
-    }
+// load dom content and add event listeners
+document.addEventListener("DOMContentLoaded", () => {
+    // file upload event listener calls handle file function
+    document.getElementById("file-input").addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) {
+            return;
+        } else {
+            handleUpload(file);
+        }
+    })
+    
+    document.getElementById("text-input")?.addEventListener("click", () => {
+        updateByteCount();
+    });
+
+    document.getElementById("process")?.addEventListener("click", () => {
+        process();
+    });
+    
+    document.getElementById("qr-button-data")?.addEventListener("click", () => {
+        downloadQR("qr-data", "data");
+    });
+
+    document.getElementById("download-data")?.addEventListener("click", () => {
+        downloadTextFile("data", data.shuffled);
+    });
+
+    document.getElementById("qr-button-key")?.addEventListener("click", () => {
+        downloadQR("qr-key", "key");
+    });
+
+    document.getElementById("download-key")?.addEventListener("click", () => {
+        downloadTextFile("key", data.key);
+    });
 });

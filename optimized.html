@@ -9,38 +9,45 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   </head>
   <body>
-    <nav>
-      <a href="index.html">Encode</a>
-      <a href="decode.html">Decode</a>
-    </nav>
-    <h1>Optimized Encode</h1>
-    <div id="error-msg"></div>
-    <section id="input-actions">
-      <h2>Input Text or Upload File</h2>
-      <input type="file" id="file-input" />
-      <div class="info-box" id="file-info"></div>
-      <textarea oninput="updateByteCount()" id="text-input" placeholder="Or enter text here..."></textarea>
-      <p> Byte size: <span id="byte-count">0</span> bytes </p>
-      <label class="flex">
-        Include all characters
-        <input type="checkbox" id="all-char" />
-      </label>
-      <input type="password" id="pw-code" placeholder="Enter password for unicode*" />
-      <input type="password" id="pw-key" placeholder="Enter password for key*" />
-      <div id="loader-text">Processing... Please wait</div>
-      <div id="loader" class="loader hidden"></div>
-      <button onclick="process()">Encrypt</button>
-    </section>
-    <section id="output-actions" class="hidden">
-      <h3>Encrypted Unicode</h3>
-      <div class="qr-section" id="qr-unicode"></div>
-      <button onclick="downloadQR('qr-unicode', 'unicode')" id="qr-button-unicode" class="hidden"> Download QR </button>
-      <button onclick="downloadTextFile('unicode', encryptedUnicode)">Download Unicode .txt</button>
-      <h3>Encrypted Key</h3>
-      <div class="qr-section" id="qr-key"></div>
-      <button onclick="downloadQR('qr-key', 'key')" id="qr-button-key" class="hidden">Download QR</button>
-      <button onclick="downloadTextFile('key', encryptedKey)">Download Key .txt</button>
-    </section>
+    <main class="container">
+      <nav>
+        <a href="index.html">Encode</a>
+        <a href="decode.html">Decode</a>
+      </nav>
+      <h1>Optimized Encode</h1>
+      <div id="error-msg"></div>
+      <div class="loader-overlay hidden">
+        <div class="loader-wrapper">
+          <div class="loader-fade"></div>
+          <div class="loader-icon">🧪</div>
+        </div>
+        <div class="loader-text">Processing... Please wait</div>
+      </div>
+      <section id="input-actions">
+        <h2>Upload File or Input Text</h2>
+        <input type="file" id="file-input" />
+        <div class="info-box" id="file-info"></div>
+        <textarea id="text-input" placeholder="Or enter text here..."></textarea>
+        <p> Byte size: <span id="byte-count">0</span> bytes </p>
+        <label class="flex">
+          Include all characters
+          <input type="checkbox" id="all-char" />
+        </label>
+        <input type="password" id="pw-data" placeholder="Enter password for data*" />
+        <input type="password" id="pw-key" placeholder="Enter password for key*" />
+        <button id="process">Encrypt</button>
+      </section>
+      <section id="output-actions" class="hidden">
+        <h3>Encrypted data</h3>
+        <div class="qr-section" id="qr-data"></div>
+        <button id="qr-button-data" class="hidden"> Download QR </button>
+        <button id="download-data">Download Data .txt</button>
+        <h3>Encrypted Key</h3>
+        <div class="qr-section" id="qr-key"></div>
+        <button id="qr-button-key" class="hidden">Download QR</button>
+        <button id="download-key">Download Key .txt</button>
+      </section>
+    </main>
     <script src="assets/optimizedEncode.js"></script>
   </body>
 </html>

@@ -23,6 +23,15 @@ function maybeShowLoader(input) {
   return false;
 }
 
+// random number for files
+function randomNumber(max = 9999) {
+    const date = Date.now().toString().slice(0, 6);
+    const rand = Math.floor(Math.random() * max);
+    return date + rand;
+}
+
+const fileId = randomNumber();
+
 let currentOutputId = null;
 let videoStream = null;
 
@@ -186,18 +195,17 @@ async function aesDecrypt(base64, password) {
 
 // Step 1: Decrypt data
 async function decryptData() {
+  const pw = document.getElementById("pw-data").value;
+  const outputSection = document.querySelectorAll("#final-output > button");
+  const unshuffleBtn = outputSection[0];
+  if (!data.shuffled || !pw) return showError("Encrypted data and password are required.");
   if (maybeShowLoader(data.shuffled)) {
     showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
-  const input = data.shuffled;
-  const pw = document.getElementById("pw-data").value;
-  const outputSection = document.querySelectorAll("#final-output > button");
-  const unshuffleBtn = outputSection[0];
-  if (!input || !pw) return showError("Encrypted data and password are required.");
   try {
-    const decryptedBytes = await aesDecrypt(input, pw);
+    const decryptedBytes = await aesDecrypt(data.shuffled, pw);
     const decompressed = pako.inflate(decryptedBytes, { to: "string" });
     data.shuffled = decompressed;
     document.getElementById("data-base64").value = data.shuffled;
@@ -212,18 +220,17 @@ async function decryptData() {
 
 // Step 2: Decrypt Key
 async function decryptKey() {
+  const pw = document.getElementById("pw-key").value;
+  const outputSection = document.querySelectorAll("#final-output > button");
+  const unshuffleBtn = outputSection[0];
+  if (!data.key || !pw) return showError("Encrypted Key and password are required.");
   if (maybeShowLoader(data.key)) {
     showLoader(true);
     // Give the browser time to repaint the loader
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
-  const input = data.key;
-  const pw = document.getElementById("pw-key").value;
-  const outputSection = document.querySelectorAll("#final-output > button");
-  const unshuffleBtn = outputSection[0];
-  if (!input || !pw) return showError("Encrypted Key and password are required.");
   try {
-    const decryptedBytes = await aesDecrypt(input, pw);
+    const decryptedBytes = await aesDecrypt(data.key, pw);
     const decompressed = pako.inflate(decryptedBytes, { to: "string" });
     data.key = decompressed;
     document.getElementById("key-base64").value = data.key;
@@ -350,7 +357,7 @@ async function saveFile() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `restored.${ext}`;
+    a.download = `file${fileId}.${ext}`;
     document.body.appendChild(a);
     a.click();
     URL.revokeObjectURL(url);
