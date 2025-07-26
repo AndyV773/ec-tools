@@ -8,6 +8,14 @@ function showError(message) {
   setTimeout(() => (msg.style.display = "none"), 3000);
 }
 
+// copy message
+function showSuccess(message) {
+  const msg = document.getElementById("success-msg");
+  msg.textContent = message;
+  msg.style.display = "block";
+  setTimeout(() => (msg.style.display = "none"), 3000);
+}
+
 // random number for files
 function randomNumber(max = 9999) {
     const date = Date.now().toString().slice(0, 6);
@@ -109,6 +117,7 @@ async function shuffleData() {
     document.getElementById("rotation-key").value = data.key;
     // Manually update byte count after changing textarea values
     updateByteCount();
+    showSuccess("Shuffle Complete!");
     skipEnc();
   } catch (err) {
     showError("Something went wrong." + err.message);
@@ -208,6 +217,7 @@ async function encryptData() {
     document.getElementById("enc-data").value = data.shuffled;
     document.getElementById("data-output").value = data.shuffled;
     setDataCorrectionLevel();
+    showSuccess("Encryption Complete!");
   } catch (err) {
     showError("Encryption failed: " + err.message);
   }
@@ -234,6 +244,7 @@ async function encryptKey() {
     document.getElementById("enc-key").value = data.key;
     document.getElementById("key-output").value = data.key;
     setKeyCorrectionLevel();
+    showSuccess("Encryption Complete!");
   } catch (err) {
     showError("Encryption failed: " + err.message);
   }
@@ -449,6 +460,7 @@ function copyData(selector) {
           .then(() => {
             button.textContent = "Copied!";
             button.classList.add("active");
+            showSuccess("Copied!");
             setTimeout(() => {
               button.textContent = "Copy";
               button.classList.remove("active");

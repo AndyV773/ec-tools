@@ -11,12 +11,15 @@
   <body>
     <main class="container">
       <nav>
-        <a href="decode.html">Decode</a>
-        <a href="optimized.html">Opt-Enc</a>
+        <a class="btn-link" href="decode.html">Decode</a>
+        <a class="btn-link" href="opt-encoder.html">Opt-Encoder</a>
+        <a class="btn-link" href="opt-decoder.html">Opt-Decoder</a>
       </nav>
 
       <h1>Encode</h1>
       <div id="error-msg"></div>
+      <div id="success-msg"></div>
+
       <div class="loader-overlay hidden">
         <div class="loader-wrapper">
           <div class="loader"></div>
@@ -41,11 +44,13 @@
         <textarea id="input-text" placeholder="Enter text..."></textarea>
         <p> Text Byte size: <span id="text-byte-count">0</span> bytes </p>
         <button id="shuffle">Shuffle to Unicode</button>
+
         <textarea id="shuffled-data" placeholder="Shuffled data" readonly></textarea>
         <div class="copy-block">
           <p> Data Byte size: <span id="shuffled-byte-count">0</span> bytes </p>
           <button>Copy</button>
         </div>
+
         <textarea id="rotation-key" placeholder="Rotation Key" readonly></textarea>
         <div class="copy-block">
           <p> Key Byte size: <span id="rotation-byte-count">0</span> bytes </p>
@@ -83,7 +88,7 @@
           <div>
             <div class="padding">
               <h4>Data</h4>
-              <textarea id="data-output" placeholder="Data output..."></textarea>
+              <textarea id="data-output" placeholder="Data output" readonly></textarea>
               <p> Data Byte size: <span id="data-byte-count">0</span> bytes </p>
               <p>Error Correction Level: <span id="qr-error-level-data">No data</span></p>
             </div>
@@ -99,7 +104,7 @@
           <div>
             <div class="padding">
               <h4>Key</h4>
-              <textarea id="key-output" placeholder="Key output..."></textarea>
+              <textarea id="key-output" placeholder="Key output" readonly></textarea>
               <p> Key Byte size: <span id="key-byte-count">0</span> bytes </p>
               <p>Error Correction Level: <span id="qr-error-level-key">No data</span></p>
             </div>

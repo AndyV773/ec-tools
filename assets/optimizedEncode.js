@@ -9,6 +9,14 @@ function showError(message) {
   setTimeout(() => (msg.style.display = "none"), 3000);
 }
 
+// copy message
+function showSuccess(message) {
+  const msg = document.getElementById("success-msg");
+  msg.textContent = message;
+  msg.style.display = "block";
+  setTimeout(() => (msg.style.display = "none"), 3000);
+}
+
 // show loader and loading text
 function showLoader(show = true) {
     document.querySelector(".loader-overlay").classList.toggle("hidden", !show);
@@ -226,6 +234,7 @@ async function process() {
             generateQRCode(data.key, "qr-key");
             document.getElementById("qr-button-key").classList.remove("hidden");
         }
+        showSuccess("Encryption Complete!");
     } catch (err) {
         showError("Encryption failed: " + err.message);
     }

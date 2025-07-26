@@ -11,18 +11,23 @@
   <body>
     <main class="container">
       <nav>
-        <a href="index.html">Encode</a>
-        <a href="decode.html">Decode</a>
+        <a class="btn-link" href="index.html">Encode</a>
+        <a class="btn-link" href="decode.html">Decode</a>
+        <a class="btn-link" href="opt-decoder.html">Opt-Decoder</a>
       </nav>
-      <h1>Optimized Encode</h1>
+
+      <h1>Optimized Encoder</h1>
       <div id="error-msg"></div>
+      <div id="success-msg"></div>
+
       <div class="loader-overlay hidden">
         <div class="loader-wrapper">
-          <div class="loader-fade"></div>
+          <div class="loader-radar"></div>
           <div class="loader-icon">🧪</div>
         </div>
         <div class="loader-text">Processing... Please wait</div>
       </div>
+
       <section id="input-actions">
         <h2>Upload File or Input Text</h2>
         <input type="file" id="file-input" />
@@ -37,6 +42,7 @@
         <input type="password" id="pw-key" placeholder="Enter password for key*" />
         <button id="process">Encrypt</button>
       </section>
+
       <section id="output-actions" class="hidden">
         <h3>Encrypted data</h3>
         <div class="qr-section" id="qr-data"></div>

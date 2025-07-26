@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure File/Text Encryptor</title>
+    <link rel="stylesheet" href="assets/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <nav>
+        <a class="btn-link" href="index.html">Encode</a>
+        <a class="btn-link" href="decode.html">Decode</a>
+        <a class="btn-link" href="opt-encoder.html">Opt-Encoder</a>
+      </nav>
+
+      <h1>Optimized Decoder</h1>
+      <div id="error-msg"></div>
+      <div id="success-msg"></div>
+
+      <div class="loader-overlay hidden">
+        <div class="loader-wrapper">
+          <div class="loader-radar blue"></div>
+          <div class="loader-icon">🌀</div>
+        </div>
+        <div class="loader-text">Processing... Please wait</div>
+      </div>
+
+      <section id="input-actions">
+        <h2>Upload QR Images or .txt file</h2>
+        <label for="data-upload">Upload data (Image or .txt):</label>
+        <input type="file" id="data-upload" accept=".txt,image/*" />
+        <label for="key-upload">Upload Key (Image or .txt):</label>
+        <input type="file" id="key-upload" accept=".txt,image/*" />
+        <input type="password" id="pw-data" placeholder="Enter password for data*" />
+        <input type="password" id="pw-key" placeholder="Enter password for key*" />
+        <button id="process">Decrypt</button>
+      </section>
+
+      <section id="output-actions" class="hidden">
+        <h2>Final Output</h2>
+        <p id="detected-ext">Detected file type: (none)</p>
+        <textarea id="result" placeholder="Output result" readonly></textarea>
+        <div class="copy-block">
+          <p> Byte size: <span id="byte-count">0</span> bytes </p>
+          <button>Copy</button>
+        </div>
+        <button>Save File</button>
+      </section>
+    </main>
+    <script src="assets/optimizedDecode.js"></script>
+  </body>
+</html>

@@ -10,12 +10,15 @@
   <body>
     <main class="container">
       <nav>
-        <a href="index.html">Encode</a>
-        <a href="optimized.html">Opt-Enc</a>
+        <a class="btn-link" href="index.html">Encode</a>
+        <a class="btn-link" href="opt-encoder.html">Opt-Encoder</a>
+        <a class="btn-link" href="opt-decoder.html">Opt-Decoder</a>
       </nav>
 
       <h1>Decode</h1>
       <div id="error-msg"></div>
+      <div id="success-msg"></div>
+
       <div class="loader-overlay hidden">
         <div class="loader-wrapper">
           <div class="loader"></div>
@@ -77,7 +80,7 @@
         <h2>Final Output</h2>
         <button class="hidden">Unshuffle Data</button>
         <p id="detected-ext">Detected file type: (none)</p>
-        <textarea id="result" placeholder="Output result..."></textarea>
+        <textarea id="result" placeholder="Output result" readonly></textarea>
         <div class="copy-block">
           <p> Byte size: <span id="byte-count">0</span> bytes </p>
           <button>Copy</button>

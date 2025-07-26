@@ -19,6 +19,24 @@ body {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
+.btn-link {
+  display: inline-block;
+  padding: 0.6em 1.2em;
+  background-color: #2563eb;       /* Blue background */
+  color: white;                    /* White text */
+  text-decoration: none;           /* Remove underline */
+  border-radius: 0.5em;            /* Rounded corners */
+  font-weight: 600;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-link:hover {
+  background-color: #1e40af;       /* Darker on hover */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+}
+
 .flex {
   display: flex;
   align-items: center;
@@ -42,9 +60,6 @@ body {
 }
 
 .active {
-  background: #1abc9c;
-  border-color: #1abc9c;
-  color: #fafafa;
   pointer-events: none;
   user-select: none;
 }
@@ -121,6 +136,20 @@ nav a {
   max-width: 80%;
 }
 
+#success-msg {
+  position: fixed;
+  top: 2em;
+  right: 2em;
+  background: #c8e6c9;
+  color: #1b5e20; 
+  padding: 1em;
+  display: none;
+  border: 1px solid #4caf50;
+  z-index: 1000;
+  max-width: 80%;
+}
+
+
 #qr-data canvas, #qr-key canvas {
   width: 100% !important; 
   height: auto !important;
@@ -179,15 +208,15 @@ nav a {
   border-left: 6px solid #00ffd5;
 }
 
-.loader-fade {
+.loader-radar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
   background: conic-gradient(
     from 0deg,
-    rgba(0, 255, 213, 1) 0deg,
+    rgba(0, 255, 213, 0) 0deg,
     rgba(0, 255, 213, 0.1) 90deg,
-    rgba(0, 255, 213, 0) 360deg
+    rgba(0, 255, 213, 1) 360deg
   );
   animation: spin 0.8s linear infinite;
   position: relative;
@@ -197,13 +226,15 @@ nav a {
   box-shadow: 0 0 15px #00ffd5;
 }
 
-.loader-icon {
-  position: absolute;
-  font-size: 1.8rem;
-  pointer-events: none;
-  user-select: none;
-  color: #ffffff;
-  filter: drop-shadow(0 0 2px #00ffd5);
+/* Blue theme override */
+.loader-radar.blue {
+  background: conic-gradient(
+    from 0deg,
+    rgba(59, 130, 246, 0) 0deg,
+    rgba(59, 130, 246, 0.1) 90deg,
+    rgba(59, 130, 246, 1) 360deg 
+  );
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
 }
 
 .loader-icon {
@@ -222,12 +253,22 @@ nav a {
   display: none;
 }
 
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
   100% {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes sway {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 50% 50%;
   }
 }
 
