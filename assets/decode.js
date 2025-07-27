@@ -253,6 +253,54 @@ async function decryptKey() {
   showLoader(false);
 }
 
+// Detects file type if no result returns txt
+async function detectFileExtension(bytes) {
+  const hex = [...bytes.slice(0, 8)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
+
+  if (hex.startsWith("504B0304")) {
+    try {
+      const zip = await JSZip.loadAsync(bytes);
+      const fileNames = Object.keys(zip.files);
+
+      if (fileNames.some(name => name.startsWith("word/"))) return "docx";
+      if (fileNames.some(name => name.startsWith("xl/"))) return "xlsx";
+      if (fileNames.some(name => name.startsWith("ppt/"))) return "pptx";
+      
+      return "zip";
+    } catch (e) {
+      return "zip";
+    }
+  }
+
+  // Known binary file signatures
+  if (hex.startsWith("89504E47")) return "png";
+  if (hex.startsWith("FFD8FF")) return "jpg";
+  if (hex.startsWith("25504446")) return "pdf";
+  if (hex.startsWith("47494638")) return "gif";
+  if (hex.includes("66747970")) return "mp4";
+  if (hex.startsWith("52494646")) return "wav";
+  if (hex.startsWith("000001BA")) return "mpg";
+  
+  // Check for binary (non-printable control characters)
+  const isBinary = bytes.slice(0, 512).some(
+    (b) =>
+      b < 0x09 || (b > 0x0D && b < 0x20) || b > 0x7E
+  );
+
+  if (isBinary) return "bin";
+
+  // Otherwise, decode as normal text and guess
+  const text = new TextDecoder().decode(bytes.slice(0, 1024)).trim();
+
+  if (text.startsWith("{") || text.startsWith("[")) return "json";
+  if (text.includes(",") && text.match(/\n|;/)) return "csv";
+
+  return "txt";
+}
+
 // takes data and key and returns undhuffled data
 async function unshuffle() {
   showLoader(true);
@@ -273,11 +321,12 @@ async function unshuffle() {
       let output = (shuffledData - rotations + 0x10ffff) % 0x10ffff;
       result += String.fromCodePoint(output);
     }
-    
+
     try {
-      result = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
-      document.getElementById("result").value = new TextDecoder().decode(result);
-      const ext = detectFileExtension(result);
+      document.getElementById("result").textContent = result;
+      const bytes = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
+      const ext = await detectFileExtension(bytes);
+      if (ext != "bin") result = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
       detectExt.dataset.value = ext;
       detectExt.textContent = "Detected file type: ." + ext;
       saveBtn.classList.remove("hidden");
@@ -290,46 +339,13 @@ async function unshuffle() {
       showSuccess("Data Unshuffled!");
     }
 
+
   } catch (err) {
     showError("Recovery failed.");
   }
   // Manually update byte count after changing textarea values
   updateByteCount();
   showLoader(false)
-}
-
-// Detects file type if no result returns txt
-function detectFileExtension(bytes) {
-  const hex = [...bytes.slice(0, 8)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
-    .toUpperCase();
-
-  // Known binary file signatures
-  if (hex.startsWith("89504E47")) return "png";
-  if (hex.startsWith("FFD8FF")) return "jpg";
-  if (hex.startsWith("25504446")) return "pdf";
-  if (hex.startsWith("504B0304")) return "zip";
-  if (hex.startsWith("47494638")) return "gif";
-  if (hex.includes("66747970")) return "mp4";
-  if (hex.startsWith("52494646")) return "wav";
-  if (hex.startsWith("000001BA")) return "mpg";
-
-  // Check for binary (non-printable control characters)
-  const isBinary = bytes.slice(0, 512).some(
-    (b) =>
-      b < 0x09 || (b > 0x0D && b < 0x20) || b > 0x7E
-  );
-
-  if (isBinary) return "bin";
-
-  // Decode and try to guess text format
-  const text = new TextDecoder().decode(bytes.slice(0, 1024)).trim();
-
-  if (text.startsWith("{") || text.startsWith("[")) return "json";
-  if (text.includes(",") && text.match(/\n|;/)) return "csv";
-
-  return "txt";
 }
 
 // text encoder helper

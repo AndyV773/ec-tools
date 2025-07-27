@@ -181,17 +181,31 @@ async function unshuffle(inputData, inputKey) {
 }
 
 // Detects file type if no result returns txt
-function detectFileExtension(bytes) {
+async function detectFileExtension(bytes) {
   const hex = [...bytes.slice(0, 8)]
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")
     .toUpperCase();
+  
+  if (hex.startsWith("504B0304")) {
+    try {
+      const zip = await JSZip.loadAsync(bytes);
+      const fileNames = Object.keys(zip.files);
+
+      if (fileNames.some(name => name.startsWith("word/"))) return "docx";
+      if (fileNames.some(name => name.startsWith("xl/"))) return "xlsx";
+      if (fileNames.some(name => name.startsWith("ppt/"))) return "pptx";
+      
+      return "zip";
+    } catch (e) {
+      return "zip";
+    }
+  }
 
   // Known binary file signatures
   if (hex.startsWith("89504E47")) return "png";
   if (hex.startsWith("FFD8FF")) return "jpg";
   if (hex.startsWith("25504446")) return "pdf";
-  if (hex.startsWith("504B0304")) return "zip";
   if (hex.startsWith("47494638")) return "gif";
   if (hex.includes("66747970")) return "mp4";
   if (hex.startsWith("52494646")) return "wav";
@@ -263,9 +277,10 @@ async function process() {
     }
 
     try {
-        result = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
-        document.getElementById("result").value = new TextDecoder().decode(result);
-        const ext = detectFileExtension(result);
+        document.getElementById("result").textContent = result;
+        const bytes = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
+        const ext = await detectFileExtension(bytes);
+        if (ext != "bin") result = Uint8Array.from(atob(result), (c) => c.charCodeAt(0));
         detectExt.dataset.value = ext;
         detectExt.textContent = "Detected file type: ." + ext;
         document.getElementById("output-actions").classList.remove("hidden");
